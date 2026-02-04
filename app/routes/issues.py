@@ -1,11 +1,12 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.schemas import IssueCreate, IssueResponse, IssueUpdate
 from app.database.config import get_db
 from app.database import models
+from app.tasks.issues import notify_issue_creation
 
 router = APIRouter(prefix="/api/v1/issues", tags=["issues"])
 
@@ -31,7 +32,11 @@ def get_issue(issue_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=IssueResponse, status_code=status.HTTP_201_CREATED)
-def create_issue(payload: IssueCreate, db: Session = Depends(get_db)):
+def create_issue(
+    payload: IssueCreate, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     """Create new issue"""
     new_issue = models.Issue(
         id=str(uuid.uuid4()),
@@ -43,6 +48,13 @@ def create_issue(payload: IssueCreate, db: Session = Depends(get_db)):
     db.add(new_issue)
     db.commit()
     db.refresh(new_issue)
+
+    """Run Background Tasks - Notify on creation"""
+    background_tasks.add_task(
+        notify_issue_creation, 
+        issue = new_issue
+    )
+
     return new_issue
 
 
