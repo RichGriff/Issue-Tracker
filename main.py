@@ -1,5 +1,6 @@
 import logging
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,6 +8,9 @@ import app.database.models as models
 from app.database.config import engine
 from app.middleware.timing import timing_middleware
 from app.routes.issues import router as issues_router
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = FastAPI()
 
