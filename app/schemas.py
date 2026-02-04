@@ -1,7 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
-from uuid import UUID
 
 class IssueStatus(str, Enum):
     OPEN = "open"
@@ -27,7 +26,9 @@ class IssueUpdate(BaseModel):
     priority: Optional[IssuePriority] = None
 
 class IssueResponse(BaseModel):
-    id: UUID
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
     title: str
     description: str
     status: IssueStatus
