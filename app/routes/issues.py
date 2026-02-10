@@ -52,10 +52,10 @@ async def create_issue(
     await db.refresh(new_issue)
 
     """Run Background Tasks - Notify on creation"""
-    # background_tasks.add_task(
-    #     notify_issue_creation, 
-    #     issue = new_issue
-    # )
+    background_tasks.add_task(
+        notify_issue_creation, 
+        issue = new_issue
+    )
 
     background_tasks.add_task(enrich_issue, issue_id=new_issue.id)
 
