@@ -1,5 +1,5 @@
 # Issue Tracker
-## Projedct around learning Python & FastAPI
+## Project around learning Python & FastAPI
 
 A hands-on project where I explored FastAPI's core features and learned how to build modern Python web APIs.
 
