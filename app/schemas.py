@@ -33,4 +33,6 @@ class IssueResponse(BaseModel):
     description: str
     status: IssueStatus
     priority: IssuePriority
+    ai_summary: Optional[str] = None
+    tags: Optional[str] = None
 

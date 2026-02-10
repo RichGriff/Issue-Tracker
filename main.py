@@ -9,6 +9,8 @@ from app.middleware.timing import timing_middleware
 from app.routes.issues import router as issues_router
 from contextlib import asynccontextmanager
 
+from app.database import models  # noqa: F401
+
 # Load environment variables from .env file
 load_dotenv()
 

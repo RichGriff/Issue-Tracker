@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import IssueCreate, IssueResponse, IssueUpdate
 from app.database.config import get_db
 from app.database import models
-from app.tasks.issues import notify_issue_creation
+from app.tasks.issues import enrich_issue, notify_issue_creation
 
 router = APIRouter(prefix="/api/v1/issues", tags=["issues"])
 
@@ -52,10 +52,12 @@ async def create_issue(
     await db.refresh(new_issue)
 
     """Run Background Tasks - Notify on creation"""
-    background_tasks.add_task(
-        notify_issue_creation, 
-        issue = new_issue
-    )
+    # background_tasks.add_task(
+    #     notify_issue_creation, 
+    #     issue = new_issue
+    # )
+
+    background_tasks.add_task(enrich_issue, issue_id=new_issue.id)
 
     return new_issue
 

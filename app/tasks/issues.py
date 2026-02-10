@@ -1,8 +1,13 @@
 import logging
+import random
+import time
 import httpx
 import os
 
+from sqlalchemy import select
+
 from app.database import models
+from app.database.config import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -63,3 +68,25 @@ def notify_issue_creation(issue: models.Issue) -> None:
             "Failed to send Slack notification",
             extra={"issue_id": issue.id},
         )
+
+async def enrich_issue(issue_id: int):
+    db = AsyncSessionLocal()
+
+    try:
+        result = await db.execute(select(models.Issue).where(models.Issue.id == issue_id))
+        issue = result.scalars().first()
+        if not issue:
+            return
+
+        # Simulate slow work (LLM call, external API, etc.)
+        time.sleep(5)
+
+        # Mock AI Summary and Tags
+        issue.ai_summary = f"AI Summary: {issue.description[:100]}..."
+        issue.tags = ",".join(random.sample(
+            ["bug", "frontend", "backend", "urgent", "low-priority"], 2
+        ))
+
+        await db.commit()
+    finally:
+        await db.close()

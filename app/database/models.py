@@ -1,7 +1,5 @@
 from sqlalchemy import Column, Enum, String
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from app.database.config import Base
 
 
 class Issue(Base):
@@ -12,3 +10,6 @@ class Issue(Base):
     description = Column(String)
     status = Column(Enum("open", "closed", name="issue_status"))
     priority = Column(Enum("low", "medium", "high", name="issue_priority"))
+
+    ai_summary = Column(String, nullable=True)
+    tags = Column(String, nullable=True)
