@@ -1,7 +1,8 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas import IssueCreate, IssueResponse, IssueUpdate
 from app.database.config import get_db
@@ -12,16 +13,17 @@ router = APIRouter(prefix="/api/v1/issues", tags=["issues"])
 
 
 @router.get("/", response_model=list[IssueResponse])
-def list_issues(db: Session = Depends(get_db)):
+async def list_issues(db: AsyncSession = Depends(get_db)):
     """List all issues from the database."""
-    issues = db.query(models.Issue).all()
-    return issues
+    result = await db.execute(select(models.Issue))
+    return result.scalars().all()
 
 
 @router.get("/{issue_id}", response_model=IssueResponse, status_code=status.HTTP_200_OK)
-def get_issue(issue_id: str, db: Session = Depends(get_db)):
+async def get_issue(issue_id: str, db: AsyncSession = Depends(get_db)):
     """Get issue by ID"""
-    issue = db.query(models.Issue).filter(models.Issue.id == issue_id).first()
+    result = await db.execute(select(models.Issue).where(models.Issue.id == issue_id))
+    issue = result.scalars().first()
 
     if not issue:
         raise HTTPException(
@@ -32,10 +34,10 @@ def get_issue(issue_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=IssueResponse, status_code=status.HTTP_201_CREATED)
-def create_issue(
+async def create_issue(
     payload: IssueCreate, 
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_db)
 ):
     """Create new issue"""
     new_issue = models.Issue(
@@ -46,8 +48,8 @@ def create_issue(
         status="open",
     )
     db.add(new_issue)
-    db.commit()
-    db.refresh(new_issue)
+    await db.commit()
+    await db.refresh(new_issue)
 
     """Run Background Tasks - Notify on creation"""
     background_tasks.add_task(
@@ -59,9 +61,10 @@ def create_issue(
 
 
 @router.put("/{issue_id}", response_model=IssueResponse, status_code=status.HTTP_200_OK)
-def update_issue(issue_id: str, payload: IssueUpdate, db: Session = Depends(get_db)):
+async def update_issue(issue_id: str, payload: IssueUpdate, db: AsyncSession = Depends(get_db)):
     """Update issue by ID"""
-    issue = db.query(models.Issue).filter(models.Issue.id == issue_id).first()
+    result = await db.execute(select(models.Issue).where(models.Issue.id == issue_id))
+    issue = result.scalars().first()
 
     if not issue:
         raise HTTPException(
@@ -77,20 +80,21 @@ def update_issue(issue_id: str, payload: IssueUpdate, db: Session = Depends(get_
     if payload.status is not None:
         issue.status = payload.status.value
 
-    db.commit()
-    db.refresh(issue)
+    await db.commit()
+    await db.refresh(issue)
     return issue
 
 
 @router.delete("/{issue_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_issue(issue_id: str, db: Session = Depends(get_db)):
+async def delete_issue(issue_id: str, db: AsyncSession = Depends(get_db)):
     """Delete issue by ID"""
-    issue = db.query(models.Issue).filter(models.Issue.id == issue_id).first()
+    result = await db.execute(select(models.Issue).where(models.Issue.id == issue_id))
+    issue = result.scalars().first()
 
     if not issue:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found"
         )
 
-    db.delete(issue)
-    db.commit()
+    await db.delete(issue)
+    await db.commit()
