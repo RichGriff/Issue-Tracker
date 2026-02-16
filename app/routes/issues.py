@@ -57,8 +57,10 @@ async def create_issue(
         issue = new_issue
     )
 
-    background_tasks.add_task(enrich_issue, issue_id=new_issue.id)
-
+    # Queue the enrichment task to Celery
+    # The task will be picked up by a Celery worker process
+    task = enrich_issue.delay(issue_id=new_issue.id)
+    
     return new_issue
 
 
