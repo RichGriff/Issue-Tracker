@@ -24,7 +24,7 @@ async def get_issue(issue_id: str, db: AsyncSession = Depends(get_db)):
     """Get issue by ID"""
     result = await db.execute(select(models.Issue).where(models.Issue.id == issue_id))
     issue = result.scalars().first()
-
+ 
     if not issue:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found"

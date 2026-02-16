@@ -90,3 +90,4 @@ async def enrich_issue(issue_id: int):
         await db.commit()
     finally:
         await db.close()
+
