@@ -1,74 +1,14 @@
+"""Celery background tasks for asynchronous, long-running operations."""
+
 import logging
 import random
 import time
-import httpx
-import os
-
-from sqlalchemy import select
 
 from app.database import models
 from app.database.config import SyncSessionLocal
 from app.celery_app import app
 
 logger = logging.getLogger(__name__)
-
-def notify_issue_creation(issue: models.Issue) -> None:
-    """Send a Slack notification when a new issue is created."""
-    
-    slack_webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
-    if not slack_webhook_url:
-        logger.warning("SLACK_WEBHOOK_URL not set, skipping notification")
-        return
-
-    logger.info("Issue created", extra={"issue_id": issue.id})
-
-    payload = {
-        "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🆕 New Issue Created",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Title:*\n{issue.title}",
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": f"*Priority:*\n{issue.priority}",
-                    },
-                ],
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"*Description:*\n{issue.description or '_No description provided_'}",
-                },
-            },
-        ]
-    }
-
-    try:
-        with httpx.Client(timeout=5.0) as client:
-            response = client.post(slack_webhook_url, json=payload)
-            response.raise_for_status()
-
-        logger.info(
-            "Slack notification sent successfully",
-            extra={"issue_id": issue.id},
-        )
-
-    except httpx.HTTPError:
-        logger.exception(
-            "Failed to send Slack notification",
-            extra={"issue_id": issue.id},
-        )
 
 
 @app.task(bind=True, max_retries=3, default_retry_delay=60)
@@ -77,6 +17,7 @@ def enrich_issue(self, issue_id: str):
     Enrich an issue with AI-generated summary and tags.
     
     This is a Celery task that runs asynchronously in a worker process.
+    Use this for long-running operations like API calls, LLM processing, etc.
     
     Args:
         issue_id: The UUID of the issue to enrich
@@ -120,5 +61,3 @@ def enrich_issue(self, issue_id: str):
         
     finally:
         db.close()
-
-

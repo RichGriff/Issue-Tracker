@@ -38,7 +38,7 @@ app.conf.update(
     
     # Task routes and queues
     task_routes={
-        "app.tasks.issues.enrich_issue": {"queue": "issues"},
+        "app.tasks.celery_tasks.enrich_issue": {"queue": "issues"},
     },
     task_queues=[
         Queue("default", Exchange("default"), routing_key="default"),
@@ -51,7 +51,7 @@ app.autodiscover_tasks(["app"])
 
 # Explicitly import task modules to ensure they're registered
 # This is necessary for Celery to discover tasks with @app.task decorators
-from app.tasks import issues  # noqa: E402, F401
+from app.tasks import celery_tasks  # noqa: E402, F401
 
 
 @app.task(bind=True)

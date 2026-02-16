@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import IssueCreate, IssueResponse, IssueUpdate
 from app.database.config import get_db
 from app.database import models
-from app.tasks.issues import enrich_issue, notify_issue_creation
+from app.tasks import notify_issue_creation
+from app.tasks.celery_tasks import enrich_issue
 
 router = APIRouter(prefix="/api/v1/issues", tags=["issues"])
 
