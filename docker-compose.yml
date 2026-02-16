@@ -7,6 +7,7 @@ services:
     container_name: fastapi-app
     ports:
       - "8000:8000"
+    env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/IssueTracker
       SYNC_DATABASE_URL: postgresql://postgres:postgres@db:5432/IssueTracker
@@ -34,6 +35,7 @@ services:
   celery-worker-1:
     build: .
     container_name: celery-worker-1
+    env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/IssueTracker
       SYNC_DATABASE_URL: postgresql://postgres:postgres@db:5432/IssueTracker
@@ -61,6 +63,7 @@ services:
   celery-worker-2:
     build: .
     container_name: celery-worker-2
+    env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/IssueTracker
       SYNC_DATABASE_URL: postgresql://postgres:postgres@db:5432/IssueTracker
@@ -91,6 +94,7 @@ services:
     command: celery -A app.celery_app flower --port=5555 --broker=redis://redis:6379/0 #--basic_auth=admin:admin
     ports:
       - "5555:5555"
+    env_file: .env
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
