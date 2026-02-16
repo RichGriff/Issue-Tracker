@@ -1,0 +1,130 @@
+version: "3.9"
+
+services:
+  # FastAPI application
+  fastapi:
+    build: .
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/IssueTracker
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@db:5432/IssueTracker
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/issues"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+    volumes:
+      - ./app:/app/app
+      - ./main.py:/app/main.py
+
+  # Celery worker 1
+  celery-worker-1:
+    build: .
+    container_name: celery-worker-1
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/IssueTracker
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@db:5432/IssueTracker
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.celery_app worker --loglevel=info -n worker1@%h --concurrency=4
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.celery_app", "inspect", "active"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+    volumes:
+      - ./app:/app/app
+      - ./main.py:/app/main.py
+
+  # Celery worker 2 (optional, for more concurrency)
+  celery-worker-2:
+    build: .
+    container_name: celery-worker-2
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/IssueTracker
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@db:5432/IssueTracker
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.celery_app worker --loglevel=info -n worker2@%h --concurrency=4
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.celery_app", "inspect", "active"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
+    volumes:
+      - ./app:/app/app
+      - ./main.py:/app/main.py
+
+  # Redis message broker
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ''
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-network
+    volumes:
+      - redis-data:/data
+
+  # PostgreSQL database
+  db:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: IssueTracker
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
